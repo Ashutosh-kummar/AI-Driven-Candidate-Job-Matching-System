@@ -5,6 +5,7 @@ const fs = require('fs');
 const router = express.Router();
 const Resume = require('../models/Resume');
 const { extractTextFromPDF } = require('../utils/pdfParser');
+const { requireAuth, requireRole } = require('../middleware/auth');
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
@@ -35,10 +36,10 @@ const upload = multer({
   },
 });
 
-// Get all resumes
-router.get('/', async (req, res) => {
+// Get candidate's own resumes
+router.get('/', requireAuth, requireRole('candidate'), async (req, res) => {
   try {
-    const resumes = await Resume.find().sort({ uploadedAt: -1 });
+    const resumes = await Resume.find({ candidateId: req.user._id }).sort({ createdAt: -1 });
     res.json(resumes);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -58,42 +59,34 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// Upload resume
-router.post('/upload', upload.single('resume'), async (req, res) => {
+// Upload resume (candidate only)
+router.post('/upload', requireAuth, requireRole('candidate'), upload.single('resume'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
-    const { candidateName, email } = req.body;
-    
-    if (!candidateName || !email) {
-      // Delete uploaded file if validation fails
-      fs.unlinkSync(req.file.path);
-      return res.status(400).json({ error: 'Candidate name and email are required' });
-    }
-
-    let extractedText = '';
+    let resumeText = '';
     
     // Extract text from PDF
     if (req.file.mimetype === 'application/pdf' || path.extname(req.file.originalname).toLowerCase() === '.pdf') {
       try {
-        extractedText = await extractTextFromPDF(req.file.path);
+        resumeText = await extractTextFromPDF(req.file.path);
       } catch (error) {
         console.error('PDF extraction error:', error);
         // Continue even if PDF extraction fails
       }
     } else if (req.file.mimetype === 'text/plain') {
       // For text files, read directly
-      extractedText = fs.readFileSync(req.file.path, 'utf-8');
+      resumeText = fs.readFileSync(req.file.path, 'utf-8');
     }
 
     const resume = new Resume({
-      candidateName,
-      email,
+      candidateId: req.user._id,
       fileName: req.file.originalname,
+      fileType: req.file.mimetype,
       filePath: req.file.path,
-      extractedText,
+      resumeText,
     });
 
     await resume.save();
@@ -107,12 +100,16 @@ router.post('/upload', upload.single('resume'), async (req, res) => {
   }
 });
 
-// Delete resume
-router.delete('/:id', async (req, res) => {
+// Delete resume (candidate only, own resumes)
+router.delete('/:id', requireAuth, requireRole('candidate'), async (req, res) => {
   try {
     const resume = await Resume.findById(req.params.id);
     if (!resume) {
       return res.status(404).json({ error: 'Resume not found' });
+    }
+    
+    if (resume.candidateId.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ error: 'You can only delete your own resumes' });
     }
 
     // Delete file from filesystem

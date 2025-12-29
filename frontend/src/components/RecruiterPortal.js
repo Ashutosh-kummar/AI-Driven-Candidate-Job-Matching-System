@@ -1,11 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Button, Form, Table, Badge, Alert } from 'react-bootstrap';
+import { Container, Card, Button, Form, Table, Badge, Alert, Modal } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
-import { jobsAPI, matchesAPI } from '../services/api';
+import { jobsAPI, recruiterAPI, feedbackAPI } from '../services/api';
 
 function RecruiterPortal() {
   const [jobs, setJobs] = useState([]);
+  const [applicants, setApplicants] = useState([]);
+  const [selectedJob, setSelectedJob] = useState(null);
   const [showJobForm, setShowJobForm] = useState(false);
+  const [showApplicantsModal, setShowApplicantsModal] = useState(false);
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [selectedCandidate, setSelectedCandidate] = useState(null);
+  const [feedbackData, setFeedbackData] = useState({
+    verdict: 'good',
+    notes: '',
+  });
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -16,7 +25,7 @@ function RecruiterPortal() {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const navigate = useNavigate();
+  const [success, setSuccess] = useState('');
 
   useEffect(() => {
     loadJobs();
@@ -24,10 +33,19 @@ function RecruiterPortal() {
 
   const loadJobs = async () => {
     try {
-      const response = await jobsAPI.getAll();
+      const response = await recruiterAPI.getMyJobs();
       setJobs(response.data);
     } catch (err) {
       setError('Failed to load jobs: ' + err.message);
+    }
+  };
+
+  const loadApplicants = async (jobId) => {
+    try {
+      const response = await recruiterAPI.getJobApplications(jobId);
+      setApplicants(response.data);
+    } catch (err) {
+      setError('Failed to load applicants: ' + err.message);
     }
   };
 
@@ -35,9 +53,11 @@ function RecruiterPortal() {
     e.preventDefault();
     setLoading(true);
     setError('');
+    setSuccess('');
 
     try {
       await jobsAPI.create(formData);
+      setSuccess('Job posted successfully!');
       setFormData({
         title: '',
         description: '',
@@ -49,21 +69,37 @@ function RecruiterPortal() {
       setShowJobForm(false);
       loadJobs();
     } catch (err) {
-      setError('Failed to create job: ' + err.message);
+      setError('Failed to create job: ' + (err.response?.data?.error || err.message));
     } finally {
       setLoading(false);
     }
   };
 
-  const handleMatchAll = async (jobId) => {
+  const handleViewApplicants = async (job) => {
+    setSelectedJob(job);
+    await loadApplicants(job._id);
+    setShowApplicantsModal(true);
+  };
+
+  const handleSubmitFeedback = async () => {
+    if (!selectedJob || !selectedCandidate) return;
+
     setLoading(true);
     setError('');
-
     try {
-      await matchesAPI.matchAll(jobId);
-      navigate(`/job/${jobId}/matches`);
+      await feedbackAPI.create({
+        jobId: selectedJob._id,
+        candidateId: selectedCandidate.candidateId._id,
+        verdict: feedbackData.verdict,
+        notes: feedbackData.notes,
+      });
+      setSuccess('Feedback submitted successfully!');
+      setShowFeedbackModal(false);
+      setFeedbackData({ verdict: 'good', notes: '' });
+      await loadApplicants(selectedJob._id);
     } catch (err) {
-      setError('Failed to match candidates: ' + err.message);
+      setError('Failed to submit feedback: ' + (err.response?.data?.error || err.message));
+    } finally {
       setLoading(false);
     }
   };
@@ -81,11 +117,13 @@ function RecruiterPortal() {
 
   return (
     <Container>
-      <h1 className="mb-4">Recruiter Portal</h1>
+      <h1 className="mb-4">Recruiter Dashboard</h1>
 
       {error && <Alert variant="danger" dismissible onClose={() => setError('')}>{error}</Alert>}
+      {success && <Alert variant="success" dismissible onClose={() => setSuccess('')}>{success}</Alert>}
 
-      <Card className="form-container">
+      {/* Create Job Form */}
+      <Card className="mb-4">
         <Card.Header>
           <h3>{showJobForm ? 'Post New Job' : 'Job Postings'}</h3>
         </Card.Header>
@@ -173,6 +211,7 @@ function RecruiterPortal() {
         </Card.Body>
       </Card>
 
+      {/* Posted Jobs */}
       <Card>
         <Card.Header>
           <h3>Posted Jobs</h3>
@@ -199,31 +238,22 @@ function RecruiterPortal() {
                     <td>{job.company}</td>
                     <td>{job.location || 'N/A'}</td>
                     <td>
-                      {job.skills.slice(0, 3).map((skill, idx) => (
+                      {job.skillsRequired?.slice(0, 3).map((skill, idx) => (
                         <Badge key={idx} bg="secondary" className="me-1">
                           {skill}
                         </Badge>
                       ))}
-                      {job.skills.length > 3 && '...'}
+                      {job.skillsRequired?.length > 3 && '...'}
                     </td>
                     <td>{new Date(job.createdAt).toLocaleDateString()}</td>
                     <td>
                       <Button
                         size="sm"
-                        variant="success"
-                        onClick={() => handleMatchAll(job._id)}
-                        disabled={loading}
-                        className="me-2"
-                      >
-                        Match Candidates
-                      </Button>
-                      <Button
-                        size="sm"
                         variant="info"
-                        onClick={() => navigate(`/job/${job._id}/matches`)}
+                        onClick={() => handleViewApplicants(job)}
                         className="me-2"
                       >
-                        View Matches
+                        View Applicants
                       </Button>
                       <Button
                         size="sm"
@@ -240,10 +270,151 @@ function RecruiterPortal() {
           )}
         </Card.Body>
       </Card>
+
+      {/* Applicants Modal */}
+      <Modal show={showApplicantsModal} onHide={() => setShowApplicantsModal(false)} size="xl">
+        <Modal.Header closeButton>
+          <Modal.Title>Applicants for {selectedJob?.title}</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {applicants.length === 0 ? (
+            <p className="text-muted">No applicants yet.</p>
+          ) : (
+            <Table responsive striped hover>
+              <thead>
+                <tr>
+                  <th>Candidate</th>
+                  <th>Email</th>
+                  <th>Match Score</th>
+                  <th>Matched Skills</th>
+                  <th>Missing Skills</th>
+                  <th>Highlights</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {applicants.map((app) => (
+                  <tr key={app._id}>
+                    <td>{app.candidateId?.name || 'N/A'}</td>
+                    <td>{app.candidateId?.email || 'N/A'}</td>
+                    <td>
+                      <Badge bg={app.matchScore >= 70 ? 'success' : app.matchScore >= 50 ? 'warning' : 'danger'}>
+                        {app.matchScore}%
+                      </Badge>
+                    </td>
+                    <td>
+                      {app.matchedSkills?.slice(0, 3).map((skill, idx) => (
+                        <Badge key={idx} bg="success" className="me-1">
+                          {skill}
+                        </Badge>
+                      ))}
+                      {app.matchedSkills?.length > 3 && '...'}
+                    </td>
+                    <td>
+                      {app.missingSkills?.slice(0, 3).map((skill, idx) => (
+                        <Badge key={idx} bg="danger" className="me-1">
+                          {skill}
+                        </Badge>
+                      ))}
+                      {app.missingSkills?.length > 3 && '...'}
+                    </td>
+                    <td>
+                      {app.highlights?.slice(0, 2).map((h, idx) => (
+                        <div key={idx} className="small text-muted">{h.substring(0, 50)}...</div>
+                      ))}
+                    </td>
+                    <td>
+                      <Button
+                        size="sm"
+                        variant="primary"
+                        onClick={() => {
+                          setSelectedCandidate(app);
+                          setShowFeedbackModal(true);
+                        }}
+                      >
+                        Add Feedback
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          )}
+
+          {/* Show previous feedback for each candidate */}
+          {applicants.map((app) => (
+            app.feedbacks && app.feedbacks.length > 0 && (
+              <Card key={`feedback-${app._id}`} className="mt-3">
+                <Card.Header>
+                  <strong>Previous Feedback for {app.candidateId?.name}</strong>
+                </Card.Header>
+                <Card.Body>
+                  {app.feedbacks.map((feedback, idx) => (
+                    <div key={idx} className="mb-2">
+                      <Badge bg={feedback.verdict === 'good' ? 'success' : 'danger'} className="me-2">
+                        {feedback.verdict === 'good' ? 'Good Match' : 'Bad Match'}
+                      </Badge>
+                      <span className="small text-muted">
+                        {new Date(feedback.createdAt).toLocaleDateString()}
+                      </span>
+                      {feedback.notes && (
+                        <p className="mt-1 mb-0">{feedback.notes}</p>
+                      )}
+                    </div>
+                  ))}
+                </Card.Body>
+              </Card>
+            )
+          ))}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowApplicantsModal(false)}>
+            Close
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Feedback Modal */}
+      <Modal show={showFeedbackModal} onHide={() => setShowFeedbackModal(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>Submit Feedback</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form>
+            <Form.Group className="mb-3">
+              <Form.Label>Verdict *</Form.Label>
+              <Form.Select
+                value={feedbackData.verdict}
+                onChange={(e) => setFeedbackData({ ...feedbackData, verdict: e.target.value })}
+              >
+                <option value="good">Good Match</option>
+                <option value="bad">Bad Match</option>
+              </Form.Select>
+            </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Label>Notes</Form.Label>
+              <Form.Control
+                as="textarea"
+                rows={4}
+                value={feedbackData.notes}
+                onChange={(e) => setFeedbackData({ ...feedbackData, notes: e.target.value })}
+                placeholder="Add any notes about this candidate..."
+              />
+            </Form.Group>
+          </Form>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowFeedbackModal(false)}>
+            Cancel
+          </Button>
+          <Button variant="primary" onClick={handleSubmitFeedback} disabled={loading}>
+            {loading ? 'Submitting...' : 'Submit Feedback'}
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </Container>
   );
 }
 
 export default RecruiterPortal;
-
-

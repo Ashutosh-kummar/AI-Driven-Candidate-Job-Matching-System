@@ -1,15 +1,16 @@
 const mongoose = require('mongoose');
 
 const resumeSchema = new mongoose.Schema({
-  candidateName: {
-    type: String,
-    required: true,
-  },
-  email: {
-    type: String,
+  candidateId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
     required: true,
   },
   fileName: {
+    type: String,
+    required: true,
+  },
+  fileType: {
     type: String,
     required: true,
   },
@@ -17,23 +18,11 @@ const resumeSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  extractedText: {
+  resumeText: {
     type: String,
     default: '',
   },
-  skills: {
-    type: [String],
-    default: [],
-  },
-  experience: {
-    type: String,
-    default: '',
-  },
-  education: {
-    type: String,
-    default: '',
-  },
-  uploadedAt: {
+  createdAt: {
     type: Date,
     default: Date.now,
   },

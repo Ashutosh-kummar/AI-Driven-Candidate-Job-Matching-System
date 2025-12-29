@@ -9,6 +9,32 @@ const api = axios.create({
   },
 });
 
+// Add token to requests if available
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Handle 401 errors (unauthorized)
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token');
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
 // Jobs API
 export const jobsAPI = {
   getAll: () => api.get('/jobs'),
@@ -39,6 +65,32 @@ export const matchesAPI = {
   matchAll: (jobId) => api.post(`/matches/job/${jobId}/match-all`),
   updateFeedback: (id, data) => api.put(`/matches/${id}/feedback`, data),
   delete: (id) => api.delete(`/matches/${id}`),
+};
+
+// Auth API
+export const authAPI = {
+  signup: (data) => api.post('/auth/signup', data),
+  login: (data) => api.post('/auth/login', data),
+  getMe: () => api.get('/auth/me'),
+};
+
+// Applications API
+export const applicationsAPI = {
+  getMyApplications: () => api.get('/applications/me'),
+  getMatchScore: (data) => api.post('/applications/match/score', data),
+  apply: (data) => api.post('/applications/apply', data),
+};
+
+// Feedback API
+export const feedbackAPI = {
+  create: (data) => api.post('/feedback', data),
+  getByJob: (jobId) => api.get(`/feedback/job/${jobId}`),
+};
+
+// Recruiter API
+export const recruiterAPI = {
+  getMyJobs: () => api.get('/recruiter/jobs'),
+  getJobApplications: (jobId) => api.get(`/recruiter/jobs/${jobId}/applications`),
 };
 
 export default api;

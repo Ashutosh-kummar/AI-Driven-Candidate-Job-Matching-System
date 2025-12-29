@@ -13,7 +13,7 @@ const jobSchema = new mongoose.Schema({
     type: [String],
     default: [],
   },
-  skills: {
+  skillsRequired: {
     type: [String],
     default: [],
   },
@@ -25,9 +25,10 @@ const jobSchema = new mongoose.Schema({
     type: String,
     default: '',
   },
-  postedBy: {
-    type: String,
-    default: 'recruiter',
+  recruiterId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true,
   },
   createdAt: {
     type: Date,

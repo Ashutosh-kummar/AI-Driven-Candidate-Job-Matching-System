@@ -17,11 +17,11 @@ if (process.env.MONGODB_URI) {
   console.log('   ❌ MONGODB_URI not found in .env');
 }
 
-if (process.env.CLAUDE_API_KEY) {
-  console.log('   ✅ CLAUDE_API_KEY found');
-  console.log('   📝 Key:', process.env.CLAUDE_API_KEY.substring(0, 10) + '...');
+if (process.env.GEMINI_API_KEY) {
+  console.log('   ✅ GEMINI_API_KEY found');
+  console.log('   📝 Key:', process.env.GEMINI_API_KEY.substring(0, 10) + '...');
 } else {
-  console.log('   ❌ CLAUDE_API_KEY not found in .env');
+  console.log('   ❌ GEMINI_API_KEY not found in .env');
 }
 
 // Test 2: Test MongoDB connection

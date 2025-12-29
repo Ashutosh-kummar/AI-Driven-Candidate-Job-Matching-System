@@ -62,12 +62,12 @@ router.post('/', async (req, res) => {
       return res.json(existingMatch);
     }
 
-    // Use Claude API to match
+    // Use Gemini API to match
     const matchResult = await matchResumeToJob(
-      resume.extractedText || resume.fileName,
+      resume.resumeText || resume.fileName,
       job.description,
-      job.requirements,
-      job.skills
+      job.requirements || [],
+      job.skillsRequired || []
     );
 
     const match = new Match({
@@ -115,10 +115,10 @@ router.post('/job/:jobId/match-all', async (req, res) => {
 
         // Create new match
         const matchResult = await matchResumeToJob(
-          resume.extractedText || resume.fileName,
+          resume.resumeText || resume.fileName,
           job.description,
-          job.requirements,
-          job.skills
+          job.requirements || [],
+          job.skillsRequired || []
         );
 
         const match = new Match({
