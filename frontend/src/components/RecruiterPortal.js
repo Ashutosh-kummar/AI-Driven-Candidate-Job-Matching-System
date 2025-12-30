@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Card, Button, Form, Table, Badge, Alert, Modal } from 'react-bootstrap';
+import { Container, Card, Button, Form, Table, Badge, Alert, Modal, Row, Col } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import { jobsAPI, recruiterAPI, feedbackAPI } from '../services/api';
 
@@ -212,64 +212,57 @@ function RecruiterPortal() {
       </Card>
 
       {/* Posted Jobs */}
-      <Card>
-        <Card.Header>
-          <h3>Posted Jobs</h3>
-        </Card.Header>
-        <Card.Body>
-          {jobs.length === 0 ? (
-            <p className="text-muted">No jobs posted yet.</p>
-          ) : (
-            <Table responsive striped hover>
-              <thead>
-                <tr>
-                  <th>Title</th>
-                  <th>Company</th>
-                  <th>Location</th>
-                  <th>Skills</th>
-                  <th>Posted</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {jobs.map((job) => (
-                  <tr key={job._id}>
-                    <td>{job.title}</td>
-                    <td>{job.company}</td>
-                    <td>{job.location || 'N/A'}</td>
-                    <td>
-                      {job.skillsRequired?.slice(0, 3).map((skill, idx) => (
-                        <Badge key={idx} bg="secondary" className="me-1">
+      <section className="mb-4">
+        <div className="d-flex justify-content-between align-items-center mb-3">
+          <h3 className="mb-0">Posted Jobs</h3>
+          <div className="text-muted small">{jobs.length} posted</div>
+        </div>
+
+        {jobs.length === 0 ? (
+          <Card>
+            <Card.Body>
+              <p className="text-muted mb-0">No jobs posted yet. Click "Post New Job" to add one.</p>
+            </Card.Body>
+          </Card>
+        ) : (
+          <Row className="g-3">
+            {jobs.map((job) => (
+              <Col key={job._id} xs={12} md={6} lg={4}>
+                <Card className="job-card h-100">
+                  <Card.Body className="d-flex flex-column">
+                    <div className="d-flex justify-content-between align-items-start mb-2">
+                      <div>
+                        <Card.Title className="mb-1">{job.title}</Card.Title>
+                        <Card.Subtitle className="text-muted small">{job.company} • {job.location || 'N/A'}</Card.Subtitle>
+                      </div>
+                      <div className="text-end">
+                        <div className="small text-muted">{new Date(job.createdAt).toLocaleDateString()}</div>
+                      </div>
+                    </div>
+
+                    <div className="mb-3">
+                      {job.skillsRequired?.map((skill, idx) => (
+                        <Badge key={idx} bg="light" text="dark" className="me-1 skill-pill">
                           {skill}
                         </Badge>
                       ))}
-                      {job.skillsRequired?.length > 3 && '...'}
-                    </td>
-                    <td>{new Date(job.createdAt).toLocaleDateString()}</td>
-                    <td>
-                      <Button
-                        size="sm"
-                        variant="info"
-                        onClick={() => handleViewApplicants(job)}
-                        className="me-2"
-                      >
+                    </div>
+
+                    <div className="mt-auto d-flex gap-2 job-actions">
+                      <Button size="sm" variant="outline-info" onClick={() => handleViewApplicants(job)}>
                         View Applicants
                       </Button>
-                      <Button
-                        size="sm"
-                        variant="danger"
-                        onClick={() => handleDelete(job._id)}
-                      >
+                      <Button size="sm" variant="danger" onClick={() => handleDelete(job._id)}>
                         Delete
                       </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </Table>
-          )}
-        </Card.Body>
-      </Card>
+                    </div>
+                  </Card.Body>
+                </Card>
+              </Col>
+            ))}
+          </Row>
+        )}
+      </section>
 
       {/* Applicants Modal */}
       <Modal show={showApplicantsModal} onHide={() => setShowApplicantsModal(false)} size="xl">

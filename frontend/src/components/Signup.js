@@ -39,12 +39,14 @@ function Signup() {
   };
 
   return (
-    <Container className="mt-5" style={{ maxWidth: '500px' }}>
-      <Card>
-        <Card.Header>
-          <h3 className="mb-0">Sign Up</h3>
-        </Card.Header>
-        <Card.Body>
+    <Container className="d-flex align-items-center justify-content-center" style={{ minHeight: '72vh' }}>
+      <Card className="glass-card" style={{ width: '100%', maxWidth: 640 }}>
+        <Card.Body className="p-4">
+          <div className="text-center mb-3">
+            <h3 className="mb-1">Create your account</h3>
+            <p className="text-muted small mb-2">Sign up as a candidate or recruiter to get started</p>
+          </div>
+
           {error && <Alert variant="danger">{error}</Alert>}
           
           <Form onSubmit={handleSubmit}>
@@ -97,13 +99,13 @@ function Signup() {
               </Form.Select>
             </Form.Group>
 
-            <Button type="submit" variant="primary" className="w-100" disabled={loading}>
+            <Button type="submit" className="cta cta-primary w-100" disabled={loading}>
               {loading ? 'Signing up...' : 'Sign Up'}
             </Button>
           </Form>
 
           <div className="text-center mt-3">
-            <p className="mb-0">
+            <p className="mb-0 text-muted small">
               Already have an account? <Link to="/login">Login</Link>
             </p>
           </div>

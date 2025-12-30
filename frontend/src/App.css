@@ -1,52 +1,170 @@
 .App {
   min-height: 100vh;
-  background-color: #f5f5f5;
+  background: transparent;
+  padding-bottom: 60px;
 }
 
+/* Navbar */
+.navbar {
+  background: linear-gradient(90deg, rgba(15,23,36,0.95), rgba(32,55,74,0.95)) !important;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  box-shadow: 0 6px 18px rgba(16,24,40,0.08);
+}
+.navbar .navbar-brand {
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  color: #fff !important;
+}
+
+/* Hero */
+.hero {
+  background: linear-gradient(135deg, #0f1724 0%, #20374a 60%);
+  color: #fff;
+  padding: 56px 0;
+  border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(2,6,23,0.35);
+  margin-bottom: 32px;
+}
+.hero .lead {
+  color: rgba(255,255,255,0.85);
+}
+.hero .btn {
+  font-weight: 600;
+  border-radius: 10px;
+  padding: 10px 20px;
+}
+
+/* Cards */
 .card {
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 6px 18px rgba(15,23,36,0.06);
   border: none;
-  transition: transform 0.2s;
+  border-radius: 12px;
+  transition: transform 180ms ease, box-shadow 180ms ease;
 }
-
 .card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+  transform: translateY(-6px);
+  box-shadow: 0 18px 40px rgba(15,23,36,0.08);
 }
 
-.btn {
-  margin: 5px;
+/* Job cards layout (Recruiter page) */
+.job-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  border-radius: 12px;
+  overflow: hidden;
+}
+.job-card .skill-pill {
+  background: rgba(15,23,36,0.06);
+  padding: 6px 8px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  margin-bottom: 4px;
+  display: inline-block;
 }
 
+/* Buttons */
+.btn-primary {
+  background: linear-gradient(90deg, #2563eb, #7c3aed);
+  border: none;
+  box-shadow: 0 8px 18px rgba(124,58,237,0.12);
+}
+.btn-success {
+  background: linear-gradient(90deg, #10b981, #06b6d4);
+  border: none;
+}
+
+/* Table container */
 .table-responsive {
-  background: white;
-  border-radius: 8px;
-  padding: 20px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 18px;
+  box-shadow: 0 8px 24px rgba(15,23,36,0.04);
 }
 
-.form-container {
-  background: white;
-  border-radius: 8px;
-  padding: 30px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  margin-bottom: 30px;
-}
-
+/* Match card */
 .match-card {
-  background: white;
-  border-radius: 8px;
+  background: #fff;
+  border-radius: 12px;
   padding: 20px;
   margin-bottom: 20px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 8px 24px rgba(15,23,36,0.04);
 }
 
-.match-score-badge {
-  font-size: 1.5rem;
-  padding: 10px 20px;
+/* Badges */
+.badge {
+  font-weight: 600;
   border-radius: 8px;
-  display: inline-block;
-  margin-bottom: 15px;
+  padding: 6px 10px;
+}
+
+/* Small helpers */
+.small-muted {
+  color: #6b7280;
+}
+
+/* Glassmorphism card */
+.glass-card {
+  background: linear-gradient(180deg, rgba(255,255,255,0.72), rgba(255,255,255,0.6));
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(255,255,255,0.6);
+}
+
+/* Avatar styles */
+.avatar-circle {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  font-size: 0.95rem;
+  flex-shrink: 0;
+}
+.avatar-circle.large {
+  width: 68px;
+  height: 68px;
+  font-size: 1.25rem;
+}
+
+/* Highlighted text */
+.highlighted-text {
+  background: linear-gradient(90deg, rgba(246,250,255,1), rgba(255,250,240,1));
+  font-size: 0.95rem;
+  color: #0f1724;
+}
+
+/* Score badge colors */
+.score-badge.match-score-high {
+  color: #16a34a;
+}
+.score-badge.match-score-medium {
+  color: #d97706;
+}
+.score-badge.match-score-low {
+  color: #dc3545;
+}
+
+/* Small card tweaks */
+.match-card {
+  border-radius: 12px;
+  transition: transform 220ms ease, box-shadow 220ms ease;
+}
+.match-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 18px 36px rgba(15,23,36,0.06);
+}
+
+/* Responsive tweaks */
+@media (max-width: 767px) {
+  .hero {
+    padding: 28px 0;
+  }
+  .job-actions {
+    flex-direction: column;
+  }
 }
 
 

@@ -3,13 +3,15 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   Container,
   Card,
-  Table,
   Badge,
   Button,
   Modal,
   Form,
   Alert,
   Spinner,
+  Row,
+  Col,
+  ProgressBar,
 } from 'react-bootstrap';
 import { matchesAPI, jobsAPI } from '../services/api';
 
@@ -87,6 +89,22 @@ function JobMatches() {
     return 'match-score-low';
   };
 
+  const getVariant = (score) => {
+    if (score >= 70) return 'success';
+    if (score >= 40) return 'warning';
+    return 'danger';
+  };
+
+  const getInitials = (name = '') => {
+    return name
+      .split(' ')
+      .map((n) => n[0])
+      .filter(Boolean)
+      .slice(0, 2)
+      .join('')
+      .toUpperCase();
+  };
+
   const highlightSkills = (text, skills) => {
     if (!text || !skills || skills.length === 0) return text;
     
@@ -115,22 +133,27 @@ function JobMatches() {
       </Button>
 
       {job && (
-        <Card className="mb-4">
-          <Card.Header>
-            <h2>{job.title}</h2>
-            <p className="mb-0">{job.company} - {job.location}</p>
-          </Card.Header>
+        <Card className="mb-4 glass-card">
           <Card.Body>
-            <p><strong>Description:</strong></p>
-            <p>{job.description}</p>
-            <p><strong>Required Skills:</strong></p>
-            <div>
-              {job.skills.map((skill, idx) => (
-                <Badge key={idx} bg="primary" className="me-2">
-                  {skill}
-                </Badge>
-              ))}
-            </div>
+            <Row className="align-items-center">
+              <Col md={8}>
+                <h2 className="mb-1">{job.title}</h2>
+                <p className="mb-1 text-muted">{job.company} • {job.location}</p>
+                <p className="mb-2 text-muted small">{job.description?.slice(0, 220)}{job.description?.length > 220 ? '...' : ''}</p>
+                <div>
+                  {(job.skills || job.skillsRequired || []).map((skill, idx) => (
+                    <Badge key={idx} bg="light" text="dark" className="me-1 skill-pill">
+                      {skill}
+                    </Badge>
+                  ))}
+                </div>
+              </Col>
+              <Col md={4} className="text-md-end mt-3 mt-md-0">
+                <Button variant="primary" onClick={handleMatchAll} disabled={loading}>
+                  {loading ? 'Matching...' : 'Match All Candidates'}
+                </Button>
+              </Col>
+            </Row>
           </Card.Body>
         </Card>
       )}
@@ -138,11 +161,8 @@ function JobMatches() {
       {error && <Alert variant="danger" dismissible onClose={() => setError('')}>{error}</Alert>}
 
       <Card>
-        <Card.Header className="d-flex justify-content-between align-items-center">
-          <h3>Candidate Matches</h3>
-          <Button variant="primary" onClick={handleMatchAll} disabled={loading}>
-            {loading ? 'Matching...' : 'Match All Candidates'}
-          </Button>
+        <Card.Header>
+          <h3 className="mb-0">Candidate Matches</h3>
         </Card.Header>
         <Card.Body>
           {matches.length === 0 ? (
@@ -153,80 +173,72 @@ function JobMatches() {
               </Button>
             </div>
           ) : (
-            <div className="table-responsive">
-              <Table striped hover>
-                <thead>
-                  <tr>
-                    <th>Rank</th>
-                    <th>Candidate</th>
-                    <th>Email</th>
-                    <th>Match Score</th>
-                    <th>Matching Skills</th>
-                    <th>Missing Skills</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {matches.map((match, index) => (
-                    <tr key={match._id}>
-                      <td>
-                        <Badge bg={index === 0 ? 'success' : 'secondary'}>
-                          #{index + 1}
-                        </Badge>
-                      </td>
-                      <td>{match.resumeId?.candidateName || 'N/A'}</td>
-                      <td>{match.resumeId?.email || 'N/A'}</td>
-                      <td>
-                        <span className={getScoreClass(match.matchScore)}>
-                          {match.matchScore}%
-                        </span>
-                      </td>
-                      <td>
+            <Row className="g-3">
+              {matches.map((match, index) => (
+                <Col key={match._id} xs={12} md={6} lg={4}>
+                  <Card className="match-card h-100">
+                    <Card.Body className="d-flex flex-column">
+                      <div className="d-flex align-items-start justify-content-between mb-3">
+                        <div className="d-flex align-items-center gap-3">
+                          <div className="avatar-circle bg-primary text-white">
+                            {getInitials(match.resumeId?.candidateName || 'NA')}
+                          </div>
+                          <div>
+                            <div className="small text-muted">#{index + 1}</div>
+                            <h5 className="mb-0">{match.resumeId?.candidateName || 'N/A'}</h5>
+                            <div className="small text-muted">{match.resumeId?.email || 'N/A'}</div>
+                          </div>
+                        </div>
+
+                        <div style={{ width: 110, textAlign: 'right' }}>
+                          <div className="mb-1 small text-muted">Match</div>
+                          <ProgressBar
+                            now={match.matchScore}
+                            variant={getVariant(match.matchScore)}
+                            label={`${match.matchScore}%`}
+                            animated
+                            striped
+                          />
+                        </div>
+                      </div>
+
+                      <div className="mb-2">
+                        <div className="small text-muted mb-1">Matching Skills</div>
                         {match.matchingSkills.length > 0 ? (
-                          <div>
-                            {match.matchingSkills.slice(0, 3).map((skill, idx) => (
-                              <Badge key={idx} bg="success" className="me-1">
-                                {skill}
-                              </Badge>
-                            ))}
-                            {match.matchingSkills.length > 3 && (
-                              <Badge bg="secondary">+{match.matchingSkills.length - 3}</Badge>
-                            )}
-                          </div>
+                          match.matchingSkills.slice(0, 4).map((s, i) => (
+                            <Badge key={i} bg="success" className="me-1 mb-1">
+                              {s}
+                            </Badge>
+                          ))
                         ) : (
-                          <span className="text-muted">None</span>
+                          <div className="text-muted small">None</div>
                         )}
-                      </td>
-                      <td>
+                      </div>
+
+                      <div className="mb-3">
+                        <div className="small text-muted mb-1">Missing Skills</div>
                         {match.missingSkills.length > 0 ? (
-                          <div>
-                            {match.missingSkills.slice(0, 3).map((skill, idx) => (
-                              <Badge key={idx} bg="warning" className="me-1">
-                                {skill}
-                              </Badge>
-                            ))}
-                            {match.missingSkills.length > 3 && (
-                              <Badge bg="secondary">+{match.missingSkills.length - 3}</Badge>
-                            )}
-                          </div>
+                          match.missingSkills.slice(0, 4).map((s, i) => (
+                            <Badge key={i} bg="warning" text="dark" className="me-1 mb-1">
+                              {s}
+                            </Badge>
+                          ))
                         ) : (
-                          <span className="text-muted">None</span>
+                          <div className="text-muted small">None</div>
                         )}
-                      </td>
-                      <td>
-                        <Button
-                          size="sm"
-                          variant="info"
-                          onClick={() => handleFeedbackClick(match)}
-                        >
+                      </div>
+
+                      <div className="mt-auto d-flex justify-content-between align-items-center">
+                        <Button size="sm" variant="outline-primary" onClick={() => handleFeedbackClick(match)}>
                           View Details
                         </Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </Table>
-            </div>
+                        <div className="small text-muted">Rank #{index + 1}</div>
+                      </div>
+                    </Card.Body>
+                  </Card>
+                </Col>
+              ))}
+            </Row>
           )}
         </Card.Body>
       </Card>
@@ -239,20 +251,25 @@ function JobMatches() {
         <Modal.Body>
           {selectedMatch && (
             <>
-              <div className="mb-3">
-                <h5>Candidate: {selectedMatch.resumeId?.candidateName}</h5>
-                <p><strong>Email:</strong> {selectedMatch.resumeId?.email}</p>
-                <p>
-                  <strong>Match Score:</strong>{' '}
-                  <span className={getScoreClass(selectedMatch.matchScore)}>
+              <div className="mb-3 d-flex align-items-center gap-3">
+                <div className="avatar-circle large bg-secondary text-white">
+                  {getInitials(selectedMatch.resumeId?.candidateName || 'NA')}
+                </div>
+                <div>
+                  <h5 className="mb-0">Candidate: {selectedMatch.resumeId?.candidateName}</h5>
+                  <div className="small text-muted">{selectedMatch.resumeId?.email}</div>
+                </div>
+                <div className="ms-auto text-end">
+                  <div className="small text-muted">Score</div>
+                  <div className={getScoreClass(selectedMatch.matchScore)} style={{ fontSize: '1.25rem', fontWeight: 700 }}>
                     {selectedMatch.matchScore}%
-                  </span>
-                </p>
+                  </div>
+                </div>
               </div>
 
               <div className="mb-3">
                 <h6>AI Analysis:</h6>
-                <p>{selectedMatch.aiAnalysis || 'No analysis available.'}</p>
+                <p className="text-muted">{selectedMatch.aiAnalysis || 'No analysis available.'}</p>
               </div>
 
               <div className="mb-3">
@@ -270,7 +287,7 @@ function JobMatches() {
                 <h6>Missing Skills:</h6>
                 <div>
                   {selectedMatch.missingSkills.map((skill, idx) => (
-                    <Badge key={idx} bg="warning" className="me-2 mb-2">
+                    <Badge key={idx} bg="warning" text="dark" className="me-2 mb-2">
                       {skill}
                     </Badge>
                   ))}
@@ -281,7 +298,7 @@ function JobMatches() {
                 <div className="mb-3">
                   <h6>Highlighted Matching Text:</h6>
                   <div
-                    className="p-3 bg-light border rounded"
+                    className="p-3 highlighted-text border rounded"
                     dangerouslySetInnerHTML={{
                       __html: highlightSkills(selectedMatch.highlightedText, selectedMatch.matchingSkills),
                     }}

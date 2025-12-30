@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Card, Form, Button, Table, Alert, Badge, Modal, ListGroup } from 'react-bootstrap';
+import { Container, Card, Form, Button, Table, Alert, Badge, Modal, ListGroup, Spinner } from 'react-bootstrap';
 import { resumesAPI, jobsAPI, applicationsAPI } from '../services/api';
 
 function CandidatePortal() {
@@ -15,6 +15,7 @@ function CandidatePortal() {
     resume: null,
   });
   const [loading, setLoading] = useState(false);
+  const [matchLoading, setMatchLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -114,6 +115,7 @@ function CandidatePortal() {
     }
 
     setLoading(true);
+    setMatchLoading(true);
     setError('');
     try {
       const response = await applicationsAPI.getMatchScore({
@@ -126,6 +128,7 @@ function CandidatePortal() {
       setError('Failed to get match score: ' + (err.response?.data?.error || err.message));
     } finally {
       setLoading(false);
+      setMatchLoading(false);
     }
   };
 
@@ -292,17 +295,24 @@ function CandidatePortal() {
                             size="sm"
                             variant="warning"
                             onClick={() => handleGetMatchScore(job)}
-                            disabled={loading}
+                            disabled={loading || matchLoading}
                             className="me-2"
                           >
-                            Get Match Score
+                            {matchLoading ? (
+                              <>
+                                <Spinner animation="border" size="sm" role="status" className="me-2" />
+                                Processing...
+                              </>
+                            ) : (
+                              'Get Match Score'
+                            )}
                           </Button>
-                          {!applications.find(app => app.jobId._id === job._id) && (
+                          {!applications.find(app => app.jobId?._id === job._id) && (
                             <Button
                               size="sm"
                               variant="success"
                               onClick={() => handleApply(job)}
-                              disabled={loading}
+                              disabled={loading || matchLoading}
                             >
                               Apply
                             </Button>
@@ -488,7 +498,7 @@ function CandidatePortal() {
             <Button
               variant="success"
               onClick={() => handleApply(matchResult.job)}
-              disabled={loading}
+              disabled={loading || matchLoading}
             >
               Apply Now
             </Button>

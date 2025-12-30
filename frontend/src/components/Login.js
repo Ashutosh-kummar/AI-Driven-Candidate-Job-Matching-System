@@ -37,12 +37,14 @@ function Login() {
   };
 
   return (
-    <Container className="mt-5" style={{ maxWidth: '500px' }}>
-      <Card>
-        <Card.Header>
-          <h3 className="mb-0">Login</h3>
-        </Card.Header>
-        <Card.Body>
+    <Container className="d-flex align-items-center justify-content-center" style={{ minHeight: '72vh' }}>
+      <Card className="glass-card" style={{ width: '100%', maxWidth: 540 }}>
+        <Card.Body className="p-4">
+          <div className="text-center mb-3">
+            <h3 className="mb-1">AI Resume Matching</h3>
+            <p className="text-muted small mb-2">Sign in to continue to your dashboard</p>
+          </div>
+
           {error && <Alert variant="danger">{error}</Alert>}
           
           <Form onSubmit={handleSubmit}>
@@ -68,13 +70,13 @@ function Login() {
               />
             </Form.Group>
 
-            <Button type="submit" variant="primary" className="w-100" disabled={loading}>
+            <Button type="submit" className="cta cta-primary w-100" disabled={loading}>
               {loading ? 'Logging in...' : 'Login'}
             </Button>
           </Form>
 
           <div className="text-center mt-3">
-            <p className="mb-0">
+            <p className="mb-0 text-muted small">
               Don't have an account? <Link to="/signup">Sign up</Link>
             </p>
           </div>
