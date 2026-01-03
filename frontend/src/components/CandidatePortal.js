@@ -15,7 +15,8 @@ function CandidatePortal() {
     resume: null,
   });
   const [loading, setLoading] = useState(false);
-  const [matchLoading, setMatchLoading] = useState(false);
+  // Job-specific processing state: { [jobId]: true }
+  const [processingJobs, setProcessingJobs] = useState({});
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -50,7 +51,9 @@ function CandidatePortal() {
   const loadApplications = async () => {
     try {
       const response = await applicationsAPI.getMyApplications();
-      setApplications(response.data);
+      // Ensure only applications with a valid populated job are kept (defensive)
+      const validApps = (response.data || []).filter(app => app && app.jobId && app.jobId._id);
+      setApplications(validApps);
     } catch (err) {
       // Not critical if this fails
       console.error('Failed to load applications:', err);
@@ -108,14 +111,30 @@ function CandidatePortal() {
     setShowJobModal(true);
   };
 
+  const isProcessing = (jobId) => !!(jobId && processingJobs[jobId]);
+
+  const startProcessing = (jobId) => {
+    if (!jobId) return;
+    setProcessingJobs(prev => ({ ...prev, [jobId]: true }));
+  };
+
+  const stopProcessing = (jobId) => {
+    if (!jobId) return;
+    setProcessingJobs(prev => {
+      const copy = { ...prev };
+      delete copy[jobId];
+      return copy;
+    });
+  };
+
   const handleGetMatchScore = async (job) => {
     if (!selectedResumeId) {
       setError('Please select a resume first');
       return;
     }
 
-    setLoading(true);
-    setMatchLoading(true);
+    // mark only this job as processing (don't toggle global loading)
+    startProcessing(job._id);
     setError('');
     try {
       const response = await applicationsAPI.getMatchScore({
@@ -127,8 +146,7 @@ function CandidatePortal() {
     } catch (err) {
       setError('Failed to get match score: ' + (err.response?.data?.error || err.message));
     } finally {
-      setLoading(false);
-      setMatchLoading(false);
+      stopProcessing(job._id);
     }
   };
 
@@ -142,7 +160,8 @@ function CandidatePortal() {
       return;
     }
 
-    setLoading(true);
+    // mark only this job as processing to avoid global UI blocking
+    startProcessing(job._id);
     setError('');
     try {
       await applicationsAPI.apply({
@@ -155,7 +174,7 @@ function CandidatePortal() {
     } catch (err) {
       setError('Failed to apply: ' + (err.response?.data?.error || err.message));
     } finally {
-      setLoading(false);
+      stopProcessing(job._id);
     }
   };
 
@@ -295,10 +314,10 @@ function CandidatePortal() {
                             size="sm"
                             variant="warning"
                             onClick={() => handleGetMatchScore(job)}
-                            disabled={loading || matchLoading}
+                            disabled={loading || isProcessing(job._id)}
                             className="me-2"
                           >
-                            {matchLoading ? (
+                            {isProcessing(job._id) ? (
                               <>
                                 <Spinner animation="border" size="sm" role="status" className="me-2" />
                                 Processing...
@@ -312,7 +331,7 @@ function CandidatePortal() {
                               size="sm"
                               variant="success"
                               onClick={() => handleApply(job)}
-                              disabled={loading || matchLoading}
+                              disabled={loading || isProcessing(job._id)}
                             >
                               Apply
                             </Button>
@@ -498,9 +517,16 @@ function CandidatePortal() {
             <Button
               variant="success"
               onClick={() => handleApply(matchResult.job)}
-              disabled={loading || matchLoading}
+              disabled={loading || isProcessing(matchResult.job?._id)}
             >
-              Apply Now
+              {isProcessing(matchResult.job?._id) ? (
+                <>
+                  <Spinner animation="border" size="sm" role="status" className="me-2" />
+                  Processing...
+                </>
+              ) : (
+                'Apply Now'
+              )}
             </Button>
           )}
         </Modal.Footer>

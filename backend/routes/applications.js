@@ -13,28 +13,30 @@ const pendingMatches = new Map();
 // Get candidate's own applications
 router.get('/me', requireAuth, requireRole('candidate'), async (req, res) => {
   try {
+    // load candidate applications with job+resume populated
     const applications = await Application.find({ candidateId: req.user._id })
       .populate('jobId', 'title company location')
       .populate('resumeId', 'fileName')
       .sort({ createdAt: -1 });
 
-    // Convert to plain objects and ensure jobId is not null to avoid frontend runtime errors
-    const safeApplications = applications.map(app => {
-      const obj = app.toObject ? app.toObject() : app;
-      if (!obj.jobId) {
-        obj.jobId = {
-          _id: null,
-          title: 'No longer available',
-          company: '',
-          location: '',
-        };
-        // optional: mark as deleted for UI use
-        obj.jobDeleted = true;
+    // Identify orphaned applications (job missing) and keep valid ones
+    const orphanIds = [];
+    const validApplications = [];
+
+    applications.forEach(app => {
+      if (!app.jobId || !app.jobId._id) {
+        orphanIds.push(app._id);
+      } else {
+        validApplications.push(app);
       }
-      return obj;
     });
 
-    res.json(safeApplications);
+    // Remove orphaned applications from DB to prevent stale UI entries
+    if (orphanIds.length > 0) {
+      await Application.deleteMany({ _id: { $in: orphanIds } });
+    }
+
+    res.json(validApplications);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
